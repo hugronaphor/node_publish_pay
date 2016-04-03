@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * @file
+ * Module install hooks file.
+ */
+
+/**
+ * Implements HOOK_schema_alter().
+ *
+ * Define the new node fields.
+ */
+function node_publish_pay_schema_alter(&$schema) {
+  $schema['node']['fields']['txn_id'] = array(
+    'definition' => 'The PayPal transaction ID',
+    'type' => 'varchar',
+    'length' => 255,
+    'default' => '',
+  );
+
+  $schema['node']['fields']['payment_status'] = array(
+    'definition' => 'The PayPal Payment Status',
+    'type' => 'varchar',
+    'length' => 32,
+    'default' => '',
+  );
+}
+
+/**
+ * Implements HOOK_install().
+ */
+function node_publish_pay_install() {
+  db_add_field('node', 'txn_id', array(
+    'definition' => 'The PayPal transaction ID',
+    'type' => 'varchar',
+    'length' => 255,
+    'default' => '',
+  ));
+
+  db_add_field('node', 'payment_status', array(
+    'definition' => 'The PayPal Payment Status',
+    'type' => 'varchar',
+    'length' => 32,
+    'default' => '',
+  ));
+
+  // Delete all the variables.
+  variable_del('node_publish_pay_ct');
+  variable_del('node_publish_pay_devel');
+  variable_del('node_publish_pay_receiver_email');
+  variable_del('node_publish_pay_currency');
+  variable_del('node_publish_pay_amount');
+  variable_del('node_publish_pay_hosted_button_id');
+}
+
+/**
+ * Implements HOOK_uninstall().
+ */
+function node_publish_pay_uninstall() {
+  db_drop_field('node', 'txn_id');
+  db_drop_field('node', 'payment_status');
+}

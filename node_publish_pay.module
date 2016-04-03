@@ -1,0 +1,345 @@
+<?php
+
+/**
+ * @file
+ * Main module file.
+ */
+
+define('NODE_PUBLISH_PAY_DEVEL', variable_get('node_publish_pay_devel'));
+
+/**
+ * Implements hook_menu().
+ */
+function node_publish_pay_menu() {
+  $items = array();
+
+  // Define an always accessible route to receive IPNs.
+  $items['paypal/ipn'] = array(
+    'page callback' => 'node_publish_pay_process_ipn',
+    'page arguments' => array(),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  // Simulate a IPN POST request.
+  $items['paypal/post-test-ipn'] = array(
+    'page callback' => 'node_publish_pay_post_test_ipn',
+    'page arguments' => array(),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/config/node_publish_pay'] = array(
+    'title' => 'Node Publish Pay',
+    'type' => MENU_LOCAL_TASK,
+    'description' => 'Configure Node Publish Pay recurring settings.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_publish_pay_admin_form'),
+    'access arguments' => array('administer nodes'),
+    'file' => 'node_publish_pay.admin.inc',
+    'weight' => 5,
+  );
+
+  return $items;
+}
+
+/**
+ * Processes an incoming IPN.
+ */
+function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
+
+  // @todo: Delete when dev done.
+  //  if (empty($_POST)) {
+  //    $_POST = $post_array;
+  //  }
+
+  $ipn = $_POST;
+
+  // Exit now if the $_POST was empty.
+  if (empty($ipn)) {
+    watchdog('node_publish_pay', 'IPN URL accessed with no POST data submitted.', array(), WATCHDOG_WARNING);
+    return FALSE;
+  }
+
+  // Check that the receiver_email is an email address
+  // registered in our site.
+  if ($ipn['receiver_email'] != variable_get('node_publish_pay_receiver_email', '')) {
+    watchdog('node_publish_pay', 'The receiver E-mail: @receiver_email is not a correct one.', array('@receiver_email' => $ipn['receiver_email']), WATCHDOG_NOTICE);
+    return FALSE;
+  }
+
+  // Check that the price and the currency are correct.
+  if ($ipn['mc_gross'] != variable_get('node_publish_pay_amount', '') || $ipn['mc_currency'] != variable_get('node_publish_pay_currency', '')) {
+    watchdog('node_publish_pay', 'The payment Amount or currency are not valid.', array(), WATCHDOG_NOTICE);
+    return FALSE;
+  }
+
+  // Check that the Product quantity is correct(Must be 1).
+  if ($ipn['mc_gross'] != 1) {
+    watchdog('node_publish_pay', 'The payment Quantity is not correct.', array(), WATCHDOG_NOTICE);
+    return FALSE;
+  }
+
+  // Prepare an array to POST back to PayPal to validate the IPN.
+  $variables = array('cmd=_notify-validate');
+
+  foreach ($ipn as $key => $value) {
+    $variables[] = $key . '=' . urlencode($value);
+  }
+
+  // Determine the proper PayPal server to POST to.
+  if (!empty($ipn['test_ipn']) && $ipn['test_ipn'] == 1) {
+    $host = 'https://www.sandbox.paypal.com/cgi-bin/webscr';
+  }
+  else {
+    $host = 'https://www.paypal.com/cgi-bin/webscr';
+  }
+
+  // @todo: Temporary disable the call as we have a test array.
+  // Process the HTTP request to validate the IPN.
+  $response = drupal_http_request($host, array(
+    'method' => 'POST',
+    'data' => implode('&', $variables)
+  ));
+
+  // If an error occurred during processing, log the message and exit.
+  if (property_exists($response, 'error')) {
+    watchdog('node_publish_pay', 'Attempt to validate IPN failed with error @code: @error', array(
+      '@code' => $response->code,
+      '@error' => $response->error
+    ), WATCHDOG_ERROR);
+    return FALSE;
+  }
+
+  // If the IPN was invalid, log a message and exit.
+  if ($response->data == 'INVALID') {
+    watchdog('node_publish_pay', 'Invalid IPN received and ignored.', array(), WATCHDOG_ALERT);
+    return FALSE;
+  }
+
+  // Exit if the IPN has already been processed.
+  if (!empty($ipn['txn_id']) && $payment_data = node_publish_pay_get_payment_data($ipn['txn_id'])) {
+    if ($payment_data['payment_status'] == $ipn['payment_status']) {
+      watchdog('node_publish_pay', 'Attempted to process an IPN that has already been processed with transaction ID @txn_id.', array('@txn_id' => $ipn['txn_id']), WATCHDOG_NOTICE);
+      return FALSE;
+    }
+  }
+
+  if (NODE_PUBLISH_PAY_DEVEL && function_exists('dsm')) {
+    dsm($ipn, 'IPN Log');
+  }
+
+  // If reached here, we can safely update the node Payment data.
+  node_publish_pay_update_payment_data($payment_data['nid'], array(
+    'payment_status' => $payment_data['payment_status'],
+    'status' => ($ipn['payment_status'] == 'Completed'),
+  ));
+}
+
+/**
+ * Implements hook_theme().
+ */
+function node_publish_pay_theme($existing, $type, $theme, $path) {
+  return array(
+    'paypal_subscribe_btn' => array(
+      'template' => 'paypal-subscribe-btn',
+      'arguments' => array(
+        'vars' => [
+          'nid' => '',
+          'hosted_button_id' => '',
+        ]
+      ),
+      'path' => $path . '/theme',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function node_publish_pay_field_extra_fields() {
+  $ct = explode(',', variable_get('node_publish_pay_ct', ''));
+  foreach ($ct as $content_type) {
+    $content_type = trim($content_type);
+    $extra['node'][$content_type]['display']['pay_button'] = [
+      'label' => t('PayPal Pay Button'),
+      'description' => t('PayPal Pay Button.'),
+      'weight' => 0,
+    ];
+  }
+
+  return $extra;
+}
+
+/**
+ * Get the payment data by txn_id.
+ *
+ * @param $txn_id
+ * @return array
+ */
+function node_publish_pay_get_payment_data($txn_id) {
+  $query = db_select('node', 'n')
+    ->fields('n', array('nid', 'payment_status'))
+    ->condition('n.txn_id', $txn_id);
+
+  $result = $query->execute()->fetchAll();
+  return !empty($result) ? (array) reset($result) : array();
+}
+
+/**
+ * Get the payment data by txn_id.
+ *
+ * @param int $nid
+ *   The Node ID.
+ * @param array $values
+ *   Node's payment data.
+ */
+function node_publish_pay_update_payment_data($nid, $values = array()) {
+  /*
+  Example.
+  @code
+  $data = array(
+    'payment_status' => 'In Development',
+    'txn_id' => 'test_txn_id__cbuebc347cg737c',
+  );
+  node_publish_pay_update_payment_data(222, $data);
+  @endcode
+  */
+  if (empty($values)) {
+    return;
+  }
+
+  // Allow only specific values.
+  $fields = array();
+  if (!empty($values['status'])) {
+    $fields['status'] = $values['status'];
+  }
+  if (!empty($values['payment_status'])) {
+    $fields['payment_status'] = $values['payment_status'];
+  }
+  if (!empty($values['txn_id'])) {
+    $fields['txn_id'] = $values['txn_id'];
+  }
+
+  if (!empty($fields)) {
+    try {
+      db_update('node')->fields($fields)->condition('nid', $nid)->execute();
+      // Update the node status in a proper way.
+      if (!empty($fields['status'])) {
+        $node = node_load($nid);
+        if ($node->status != $fields['status']) {
+          $node->status = $fields['status'];
+          node_save($node);
+        }
+      }
+    } catch (\Exception $e) {
+      watchdog('node_publish_pay', 'The payment data for node with NID @nid failed to be updated.', array('@nid' => $nid), WATCHDOG_ERROR);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function node_publish_pay_node_view($node, $view_mode) {
+
+  $extra_fields = field_extra_fields_get_display('node', $node->type, $view_mode);
+  // Add the PayPal button if the node is Unpublished.
+  if (empty($node->status) && !empty($extra_fields['pay_button']['visible'])) {
+    if ($hosted_button_id = variable_get('node_publish_pay_hosted_button_id')) {
+      $node->content['pay_button'] = array(
+        '#markup' => theme('paypal_subscribe_btn', array(
+          'nid' => $node->nid,
+          'hosted_button_id' => $hosted_button_id,
+        )),
+      );
+    }
+  }
+}
+
+function node_publish_pay_post_test_ipn() {
+  global $base_url;
+
+  $make_a_post_request = FALSE;
+  $test_url_params = 'residence_country=US&invoice=abc1234&address_city=San+Jose&first_name=John&payer_id=TESTBUYERID01&mc_fee=0.44&txn_id=test_txn_id__cbuebc347cg737c&receiver_email=paypalsandbox%40u7solutions.com&custom=222&payment_date=12%3A40%3A25+27+Aug+2013+PDT&address_country_code=US&address_zip=95131&item_name1=something&mc_handling=2.06&mc_handling1=1.67&tax=2.02&address_name=John+Smith&last_name=Smith&receiver_id=seller%40paypalsandbox.com&verify_sign=AFcWxV21C7fd0v3bYYYRCpSSRl31AgAAjEU7A5rthY2aP4j1jOIrjuGx&address_country=United+States&payment_status=Completed&address_status=confirmed&business=seller%40paypalsandbox.com&payer_email=buyer%40paypalsandbox.com&notify_version=2.4&txn_type=cart&test_ipn=1&payer_status=unverified&mc_currency=CAD&mc_gross=1&mc_shipping=3.02&mc_shipping1=1.02&item_number1=AK-1234&address_state=CA&mc_gross1=9.34&payment_type=instant&address_street=123%2C+any+street';
+
+
+  if (!$make_a_post_request) {
+    parse_str($test_url_params, $post_array);
+    node_publish_pay_process_ipn($post_array, TRUE);
+  }
+  else {
+    // IPN listener to test.
+    $paypal_url = $base_url . '/paypal/ipn';
+    /*
+     * More detailed breakout of the raw data
+      _POST EXAMPLE ARRAY FROM PAYPAL:
+      Array
+      (
+      [residence_country] => US
+      [invoice] => abc1234
+      [address_city] => San Jose
+      [first_name] => John
+      [payer_id] => TESTBUYERID01
+      [mc_fee] => 0.44
+      [txn_id] => 421462822
+      [receiver_email] => seller@paypalsandbox.com
+      [custom] => xyz123 CUSTOMHASH
+      [payment_date] => 12:40:25 27 Aug 2013 PDT
+      [address_country_code] => US
+      [address_zip] => 95131
+      [item_name1] => something
+      [mc_handling] => 2.06
+      [mc_handling1] => 1.67
+      [tax] => 2.02
+      [address_name] => John Smith
+      [last_name] => Smith
+      [receiver_id] => seller@paypalsandbox.com
+      [verify_sign] => AFcWxV21C7fd0v3bYYYRCpSSRl31AgAAjEU7A5rthY2aP4j1jOIrjuGx
+      [address_country] => United States
+      [payment_status] => Completed
+      [address_status] => confirmed
+      [business] => seller@paypalsandbox.com
+      [payer_email] => buyer@paypalsandbox.com
+      [notify_version] => 2.4
+      [txn_type] => cart
+      [test_ipn] => 1
+      [payer_status] => unverified
+      [mc_currency] => USD
+      [mc_gross] => 12.34
+      [mc_shipping] => 3.02
+      [mc_shipping1] => 1.02
+      [item_number1] => AK-1234
+      [address_state] => CA
+      [mc_gross1] => 9.34
+      [payment_type] => instant
+      [address_street] => 123, any street
+      )
+     */
+
+    //#
+    // PayPal IPN processor in PHP
+    // fake paypal post to test scripts
+    //#
+    //----------------------------------------------------------
+    // Create FAKE post from PayPal.
+    //----------------------------------------------------------
+    $req = $test_url_params; // use test data
+
+    //open connection
+    $ch = curl_init();
+
+    //set the url, number of POST vars, POST data
+    curl_setopt($ch, CURLOPT_URL, $paypal_url);
+    curl_setopt($ch, CURLOPT_POST, substr_count($req, '&') + 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $req);
+
+    //execute post
+    $result = curl_exec($ch);
+
+    //close connection
+    curl_close($ch);
+  }
+
+  return 'Test PayPal IPN';
+}

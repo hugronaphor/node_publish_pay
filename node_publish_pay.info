@@ -1,0 +1,3 @@
+name = Node Publish Pay
+description = Node Publish Pay with Paypal recurring
+core = 7.x
