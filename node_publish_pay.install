@@ -43,14 +43,6 @@ function node_publish_pay_install() {
     'length' => 32,
     'default' => '',
   ));
-
-  // Delete all the variables.
-  variable_del('node_publish_pay_ct');
-  variable_del('node_publish_pay_devel');
-  variable_del('node_publish_pay_receiver_email');
-  variable_del('node_publish_pay_currency');
-  variable_del('node_publish_pay_amount');
-  variable_del('node_publish_pay_hosted_button_id');
 }
 
 /**
@@ -59,4 +51,12 @@ function node_publish_pay_install() {
 function node_publish_pay_uninstall() {
   db_drop_field('node', 'txn_id');
   db_drop_field('node', 'payment_status');
+
+  // Delete all the variables.
+  variable_del('node_publish_pay_ct');
+  variable_del('node_publish_pay_devel');
+  variable_del('node_publish_pay_receiver_email');
+  variable_del('node_publish_pay_currency');
+  variable_del('node_publish_pay_amount');
+  variable_del('node_publish_pay_hosted_button_id');
 }
