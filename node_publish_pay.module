@@ -131,8 +131,8 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   }
 
   // Handle the first time payment.
-  if (empty($payment_data['nid']) && !empty($ipn['nid'])) {
-    $new_nid = $ipn['nid'];
+  if (empty($payment_data['nid']) && !empty($ipn['custom'])) {
+    $new_nid = $ipn['custom'];
   }
   else {
     watchdog('node_publish_pay', 'The node ID is missing from IPN.', array(), WATCHDOG_NOTICE);
