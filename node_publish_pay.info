@@ -1,3 +1,4 @@
 name = Node Publish Pay
 description = Node Publish Pay with Paypal recurring
+configure = admin/config/node_publish_pay
 core = 7.x

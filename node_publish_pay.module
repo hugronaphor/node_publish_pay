@@ -55,6 +55,11 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
 
   $ipn = $_POST;
 
+  if (NODE_PUBLISH_PAY_DEVEL && function_exists('dsm')) {
+    dsm($ipn, 'Original IPN Log');
+    watchdog('node_publish_pay', serialize($ipn), array(), WATCHDOG_NOTICE);
+  }
+
   // Exit now if the $_POST was empty.
   if (empty($ipn)) {
     watchdog('node_publish_pay', 'IPN URL accessed with no POST data submitted.', array(), WATCHDOG_WARNING);
@@ -125,12 +130,17 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     }
   }
 
-  if (NODE_PUBLISH_PAY_DEVEL && function_exists('dsm')) {
-    dsm($ipn, 'IPN Log');
+  // Handle the first time payment.
+  if (empty($payment_data['nid']) && !empty($ipn['nid'])) {
+    $new_nid = $ipn['nid'];
+  }
+  else {
+    watchdog('node_publish_pay', 'The node ID is missing from IPN.', array(), WATCHDOG_NOTICE);
   }
 
   // If reached here, we can safely update the node Payment data.
-  node_publish_pay_update_payment_data($payment_data['nid'], array(
+  $nid = isset($new_nid) ? $new_nid : $payment_data['nid'];
+  node_publish_pay_update_payment_data($nid, array(
     'payment_status' => $payment_data['payment_status'],
     'status' => ($ipn['payment_status'] == 'Completed'),
   ));
