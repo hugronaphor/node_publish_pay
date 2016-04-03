@@ -44,14 +44,8 @@ function node_publish_pay_admin_form() {
 
   $form['payment']['node_publish_pay_currency'] = array(
     '#type' => 'textfield',
-    '#title' => t('The payment currency code(e.g: CAD, GBP)'),
+    '#title' => t('The payment currency code used for validation(e.g: CAD, GBP)'),
     '#default_value' => variable_get('node_publish_pay_currency'),
-  );
-
-  $form['payment']['node_publish_pay_amount'] = array(
-    '#type' => 'textfield',
-    '#title' => t('The payment amount'),
-    '#default_value' => variable_get('node_publish_pay_amount'),
   );
 
   $form['payment']['node_publish_pay_hosted_button_id'] = array(

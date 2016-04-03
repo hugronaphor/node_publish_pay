@@ -57,6 +57,5 @@ function node_publish_pay_uninstall() {
   variable_del('node_publish_pay_devel');
   variable_del('node_publish_pay_receiver_email');
   variable_del('node_publish_pay_currency');
-  variable_del('node_publish_pay_amount');
   variable_del('node_publish_pay_hosted_button_id');
 }

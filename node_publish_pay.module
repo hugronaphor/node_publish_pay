@@ -73,15 +73,9 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     return FALSE;
   }
 
-  // Check that the price and the currency are correct.
-  if ($ipn['mc_gross'] != variable_get('node_publish_pay_amount', '') || $ipn['mc_currency'] != variable_get('node_publish_pay_currency', '')) {
-    watchdog('node_publish_pay', 'The payment Amount or currency are not valid.', array(), WATCHDOG_NOTICE);
-    return FALSE;
-  }
-
-  // Check that the Product quantity is correct(Must be 1).
-  if ($ipn['mc_gross'] != 1) {
-    watchdog('node_publish_pay', 'The payment Quantity is not correct.', array(), WATCHDOG_NOTICE);
+  // Check that the currency is correct.
+  if ($ipn['mc_currency'] != variable_get('node_publish_pay_currency', '')) {
+    watchdog('node_publish_pay', 'The payment currency is not a valid one.', array(), WATCHDOG_NOTICE);
     return FALSE;
   }
 
@@ -141,7 +135,7 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   // If reached here, we can safely update the node Payment data.
   $nid = isset($new_nid) ? $new_nid : $payment_data['nid'];
   node_publish_pay_update_payment_data($nid, array(
-    'payment_status' => $payment_data['payment_status'],
+    'payment_status' => $ipn['payment_status'],
     'status' => ($ipn['payment_status'] == 'Completed'),
   ));
 }
@@ -237,7 +231,7 @@ function node_publish_pay_update_payment_data($nid, $values = array()) {
       // Update the node status in a proper way.
       if (!empty($fields['status'])) {
         $node = node_load($nid);
-        if ($node->status != $fields['status']) {
+        if (!empty($node->nid) && $node->status != $fields['status']) {
           $node->status = $fields['status'];
           node_save($node);
         }
