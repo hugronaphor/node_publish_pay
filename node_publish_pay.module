@@ -66,6 +66,11 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     return FALSE;
   }
 
+  // Make sure this is the expected POST action as we need these data.
+  if (empty($ipn['payment_status']) || empty($ipn['txn_id']) || empty($ipn['custom'])) {
+    return;
+  }
+
   // Check that the receiver_email is an email address
   // registered in our site.
   if ($ipn['receiver_email'] != variable_get('node_publish_pay_receiver_email', '')) {
@@ -94,7 +99,6 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     $host = 'https://www.paypal.com/cgi-bin/webscr';
   }
 
-  // @todo: Temporary disable the call as we have a test array.
   // Process the HTTP request to validate the IPN.
   $response = drupal_http_request($host, array(
     'method' => 'POST',
@@ -136,6 +140,7 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   $nid = isset($new_nid) ? $new_nid : $payment_data['nid'];
   node_publish_pay_update_payment_data($nid, array(
     'payment_status' => $ipn['payment_status'],
+    'txn_id' => $ipn['txn_id'],
     'status' => ($ipn['payment_status'] == 'Completed'),
   ));
 }
