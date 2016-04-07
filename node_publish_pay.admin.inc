@@ -57,11 +57,5 @@ function node_publish_pay_admin_form() {
     '#default_value' => variable_get('node_publish_pay_currency'),
   );
 
-  $form['payment']['node_publish_pay_hosted_button_id'] = array(
-    '#type' => 'textfield',
-    '#title' => t('The button ID'),
-    '#default_value' => variable_get('node_publish_pay_hosted_button_id'),
-  );
-
   return system_settings_form($form);
 }
