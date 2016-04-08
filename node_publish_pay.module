@@ -267,12 +267,20 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
 
   // If reached here, we can safely update the node Payment data.
   $nid = isset($new_nid) ? $new_nid : $payment_data['nid'];
-  node_publish_pay_update_payment_data($nid, array(
+
+  $fields = array(
     'payment_status' => $ipn['payment_status'],
     'txn_id' => $ipn['txn_id'],
     'subscr_id' => $ipn['subscr_id'],
-    'status' => ($ipn['payment_status'] == 'Completed'),
-  ));
+  );
+
+  // Update the node status only when when need to Unpublish as only Admin
+  // can publish the node after the review.
+  if ($ipn['payment_status'] != 'Completed') {
+    $fields['status'] = FALSE;
+  }
+
+  node_publish_pay_update_payment_data($nid, $fields);
 }
 
 /**
