@@ -13,7 +13,7 @@ function node_publish_pay_admin_form() {
     '#type' => 'fieldset',
     '#title' => t('General data'),
     '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
+    '#collapsed' => TRUE,
   );
 
   $form['general']['node_publish_pay_ct'] = array(
@@ -42,7 +42,7 @@ function node_publish_pay_admin_form() {
     '#type' => 'fieldset',
     '#title' => t('Payment data'),
     '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
+    '#collapsed' => TRUE,
   );
 
   $form['payment']['node_publish_pay_receiver_email'] = array(
@@ -55,6 +55,32 @@ function node_publish_pay_admin_form() {
     '#type' => 'textfield',
     '#title' => t('The payment currency code used for validation(e.g: CAD, GBP)'),
     '#default_value' => variable_get('node_publish_pay_currency'),
+  );
+
+  $form['api'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('API data'),
+    '#description' => t('Used for Subscription cancellation'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $form['api']['node_publish_pay_api_username'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API username'),
+    '#default_value' => variable_get('node_publish_pay_api_username'),
+  );
+
+  $form['api']['node_publish_pay_api_password'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API password'),
+    '#default_value' => variable_get('node_publish_pay_api_password'),
+  );
+
+  $form['api']['node_publish_pay_api_signature'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API signature'),
+    '#default_value' => variable_get('node_publish_pay_api_signature'),
   );
 
   return system_settings_form($form);

@@ -18,6 +18,13 @@ function node_publish_pay_schema_alter(&$schema) {
     'default' => '',
   );
 
+  $schema['node']['fields']['subscr_id'] = array(
+    'definition' => 'The PayPal Subscription ID',
+    'type' => 'varchar',
+    'length' => 32,
+    'default' => '',
+  );
+
   $schema['node']['fields']['payment_status'] = array(
     'definition' => 'The PayPal Payment Status',
     'type' => 'varchar',
@@ -37,6 +44,13 @@ function node_publish_pay_install() {
     'default' => '',
   ));
 
+  db_add_field('node', 'subscr_id', array(
+    'definition' => 'The PayPal Subscription ID',
+    'type' => 'varchar',
+    'length' => 32,
+    'default' => '',
+  ));
+
   db_add_field('node', 'payment_status', array(
     'definition' => 'The PayPal Payment Status',
     'type' => 'varchar',
@@ -50,6 +64,7 @@ function node_publish_pay_install() {
  */
 function node_publish_pay_uninstall() {
   db_drop_field('node', 'txn_id');
+  db_drop_field('node', 'subscr_id');
   db_drop_field('node', 'payment_status');
 
   // Delete all the variables.
@@ -57,4 +72,7 @@ function node_publish_pay_uninstall() {
   variable_del('node_publish_pay_devel');
   variable_del('node_publish_pay_receiver_email');
   variable_del('node_publish_pay_currency');
+  variable_del('node_publish_pay_api_username');
+  variable_del('node_publish_pay_api_password');
+  variable_del('node_publish_pay_api_signature');
 }

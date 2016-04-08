@@ -1,5 +1,11 @@
 <div class="paypal-subscribe-wrapper">
 
+  <?php if (empty($payment_status)) : ?>
+    <div class="payment-status">
+      <?php print $payment_status; ?>
+    </div>
+  <?php endif; ?>
+
   <?php if ($is_payment_completed && !empty($publish_link)) : ?>
     <div class="publish-link">
       <?php print $publish_link; ?>
@@ -49,11 +55,4 @@
       <?php endif; ?>
     </div>
   <?php endif; ?>
-
-  <?php if (empty($payment_status)) : ?>
-    <div class="payment-status">
-      <?php print $payment_status; ?>
-    </div>
-  <?php endif; ?>
-
   <div>

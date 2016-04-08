@@ -13,21 +13,21 @@ define('NODE_PUBLISH_PAY_DEVEL', variable_get('node_publish_pay_devel'));
 function node_publish_pay_menu() {
   $items = array();
 
-  // Simulate a IPN POST request.
-  // @todo: Delete when dev is done.
-  $items['paypal/post-test-ipn'] = array(
-    'page callback' => 'node_publish_pay_post_test_ipn',
-    'page arguments' => array(),
-    'access callback' => TRUE,
-    'type' => MENU_CALLBACK,
-  );
-
   // Define an always accessible route to receive IPNs.
   $items['node-publish-pay/ipn'] = array(
     'page callback' => 'node_publish_pay_process_ipn',
     'page arguments' => array(),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
+  );
+
+  $items['node-publish-pay/%/cancel'] = array(
+    'title' => 'Cancel the subscription',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('node_publish_pay_cancel_confirm_form', 1),
+    'access arguments' => array('allow cancel subscription'),
+    'type' => MENU_CALLBACK,
+    'file' => 'node_publish_pay.cancel.inc',
   );
 
   $items['node-publish-pay/%/publish'] = array(
@@ -54,6 +54,16 @@ function node_publish_pay_menu() {
 }
 
 /**
+ * Implements HOOK_views_api().
+ */
+function node_publish_pay_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'node_publish_pay') . '/includes/views',
+  );
+}
+
+/**
  * Implements hook_permission().
  *
  * Defines a new permission called 'my custom permission'.
@@ -63,6 +73,10 @@ function node_publish_pay_permission() {
     'allow publish payable node' => array(
       'title' => t('Allow publish payable node'),
       'description' => t('Allows users to publish the payable nodes.'),
+    ),
+    'allow cancel subscription' => array(
+      'title' => t('Allow cancel owned property subscription'),
+      'description' => t('Allows users to cancel owned property subscription .'),
     ),
   );
 }
@@ -168,12 +182,6 @@ function node_publish_pay_node_view($node, $view_mode) {
  * Processes an incoming IPN.
  */
 function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
-
-  // @todo: Delete when dev is done.
-  //  if (empty($_POST)) {
-  //    $_POST = $post_array;
-  //  }
-
   $ipn = $_POST;
 
   if (NODE_PUBLISH_PAY_DEVEL && function_exists('dsm')) {
@@ -188,7 +196,7 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   }
 
   // Make sure this is the expected POST action as we need these data.
-  if (empty($ipn['payment_status']) || empty($ipn['txn_id']) || empty($ipn['custom'])) {
+  if (empty($ipn['payment_status']) || empty($ipn['subscr_id']) || empty($ipn['txn_id']) || empty($ipn['custom'])) {
     return;
   }
 
@@ -262,6 +270,7 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   node_publish_pay_update_payment_data($nid, array(
     'payment_status' => $ipn['payment_status'],
     'txn_id' => $ipn['txn_id'],
+    'subscr_id' => $ipn['subscr_id'],
     'status' => ($ipn['payment_status'] == 'Completed'),
   ));
 }
@@ -312,7 +321,7 @@ function node_publish_pay_get_payment_data($txn_id) {
 }
 
 /**
- * Get the payment data by txn_id.
+ * Update the payment data by Node ID.
  *
  * @param int $nid
  *   The Node ID.
@@ -326,16 +335,8 @@ function node_publish_pay_update_payment_data($nid, $values = array()) {
   }
 
   // Allow only specific values.
-  $fields = array();
-  if (!empty($values['status'])) {
-    $fields['status'] = $values['status'];
-  }
-  if (!empty($values['payment_status'])) {
-    $fields['payment_status'] = $values['payment_status'];
-  }
-  if (!empty($values['txn_id'])) {
-    $fields['txn_id'] = $values['txn_id'];
-  }
+  $allowed_fields = array('status', 'payment_status', 'txn_id', 'subscr_id');
+  $fields = array_intersect_key($values, $allowed_fields);
 
   if (!empty($fields)) {
     try {
@@ -352,96 +353,4 @@ function node_publish_pay_update_payment_data($nid, $values = array()) {
       watchdog('node_publish_pay', 'The payment data for node with NID @nid failed to be updated.', array('@nid' => $nid), WATCHDOG_ERROR);
     }
   }
-}
-
-/**
- * Simulate a request.
- *
- * @todo: Delete when dev is done.
- */
-function node_publish_pay_post_test_ipn() {
-  global $base_url;
-
-  $make_a_post_request = FALSE;
-  $test_url_params = 'residence_country=US&invoice=abc1234&address_city=San+Jose&first_name=John&payer_id=TESTBUYERID01&mc_fee=0.44&txn_id=test_txn_id__cbuebc347cg737c&receiver_email=paypalsandbox%40u7solutions.com&custom=222&payment_date=12%3A40%3A25+27+Aug+2013+PDT&address_country_code=US&address_zip=95131&item_name1=something&mc_handling=2.06&mc_handling1=1.67&tax=2.02&address_name=John+Smith&last_name=Smith&receiver_id=seller%40paypalsandbox.com&verify_sign=AFcWxV21C7fd0v3bYYYRCpSSRl31AgAAjEU7A5rthY2aP4j1jOIrjuGx&address_country=United+States&payment_status=Completed&address_status=confirmed&business=seller%40paypalsandbox.com&payer_email=buyer%40paypalsandbox.com&notify_version=2.4&txn_type=cart&test_ipn=1&payer_status=unverified&mc_currency=CAD&mc_gross=1&mc_shipping=3.02&mc_shipping1=1.02&item_number1=AK-1234&address_state=CA&mc_gross1=9.34&payment_type=instant&address_street=123%2C+any+street';
-
-
-  if (!$make_a_post_request) {
-    parse_str($test_url_params, $post_array);
-    node_publish_pay_process_ipn($post_array, TRUE);
-  }
-  else {
-    // IPN listener to test.
-    $paypal_url = $base_url . '/paypal/ipn';
-    /*
-     * More detailed breakout of the raw data
-      _POST EXAMPLE ARRAY FROM PAYPAL:
-      Array
-      (
-      [residence_country] => US
-      [invoice] => abc1234
-      [address_city] => San Jose
-      [first_name] => John
-      [payer_id] => TESTBUYERID01
-      [mc_fee] => 0.44
-      [txn_id] => 421462822
-      [receiver_email] => seller@paypalsandbox.com
-      [custom] => xyz123 CUSTOMHASH
-      [payment_date] => 12:40:25 27 Aug 2013 PDT
-      [address_country_code] => US
-      [address_zip] => 95131
-      [item_name1] => something
-      [mc_handling] => 2.06
-      [mc_handling1] => 1.67
-      [tax] => 2.02
-      [address_name] => John Smith
-      [last_name] => Smith
-      [receiver_id] => seller@paypalsandbox.com
-      [verify_sign] => AFcWxV21C7fd0v3bYYYRCpSSRl31AgAAjEU7A5rthY2aP4j1jOIrjuGx
-      [address_country] => United States
-      [payment_status] => Completed
-      [address_status] => confirmed
-      [business] => seller@paypalsandbox.com
-      [payer_email] => buyer@paypalsandbox.com
-      [notify_version] => 2.4
-      [txn_type] => cart
-      [test_ipn] => 1
-      [payer_status] => unverified
-      [mc_currency] => USD
-      [mc_gross] => 12.34
-      [mc_shipping] => 3.02
-      [mc_shipping1] => 1.02
-      [item_number1] => AK-1234
-      [address_state] => CA
-      [mc_gross1] => 9.34
-      [payment_type] => instant
-      [address_street] => 123, any street
-      )
-     */
-
-    //#
-    // PayPal IPN processor in PHP
-    // fake paypal post to test scripts
-    //#
-    //----------------------------------------------------------
-    // Create FAKE post from PayPal.
-    //----------------------------------------------------------
-    $req = $test_url_params; // use test data
-
-    //open connection
-    $ch = curl_init();
-
-    //set the url, number of POST vars, POST data
-    curl_setopt($ch, CURLOPT_URL, $paypal_url);
-    curl_setopt($ch, CURLOPT_POST, substr_count($req, '&') + 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $req);
-
-    //execute post
-    $result = curl_exec($ch);
-
-    //close connection
-    curl_close($ch);
-  }
-
-  return 'Test PayPal IPN';
 }
