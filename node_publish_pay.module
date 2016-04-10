@@ -21,11 +21,19 @@ function node_publish_pay_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  $items['user/%user/properties'] = array(
+    'title' => 'Properties',
+    'page callback' => 'node_publish_pay_get_properties',
+    'page arguments' => array(1),
+    'access arguments' => array('allow manage subscription'),
+    'type' => MENU_LOCAL_TASK,
+  );
+
   $items['node-publish-pay/%/cancel'] = array(
     'title' => 'Cancel the subscription',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('node_publish_pay_cancel_confirm_form', 1),
-    'access arguments' => array('allow cancel subscription'),
+    'access arguments' => array('allow manage subscription'),
     'type' => MENU_CALLBACK,
     'file' => 'node_publish_pay.cancel.inc',
   );
@@ -74,9 +82,9 @@ function node_publish_pay_permission() {
       'title' => t('Allow publish payable node'),
       'description' => t('Allows users to publish the payable nodes.'),
     ),
-    'allow cancel subscription' => array(
-      'title' => t('Allow cancel owned property subscription'),
-      'description' => t('Allows users to cancel owned property subscription .'),
+    'allow manage subscription' => array(
+      'title' => t('Allow management of owned property subscription'),
+      'description' => t('Allows users to manage their owned property subscription .'),
     ),
   );
 }
@@ -281,6 +289,19 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   }
 
   node_publish_pay_update_payment_data($nid, $fields);
+}
+
+function node_publish_pay_get_properties($user) {
+  $view = views_get_view('users_properties');
+  if (!$view) {
+    return;
+  }
+
+  $view->set_display('user_properties');
+  $view->set_arguments(array($user->uid));
+  $view->pre_execute();
+  $view->execute();
+  return $view->render();
 }
 
 /**

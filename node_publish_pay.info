@@ -1,6 +1,7 @@
 name = Node Publish Pay
 description = Node Publish Pay with Paypal recurring
 configure = admin/config/node_publish_pay
+dependencies[] = views
 core = 7.x
 
 files[] = includes/views/nodequeue.views.inc
