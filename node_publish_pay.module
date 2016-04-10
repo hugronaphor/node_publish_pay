@@ -350,7 +350,7 @@ function node_publish_pay_update_payment_data($nid, $values = array()) {
     try {
       db_update('node')->fields($fields)->condition('nid', $nid)->execute();
       // Update the node status in a proper way.
-      if (!empty($fields['status'])) {
+      if (isset($fields['status'])) {
         $node = node_load($nid);
         if (!empty($node->nid) && $node->status != $fields['status']) {
           $node->status = $fields['status'];
