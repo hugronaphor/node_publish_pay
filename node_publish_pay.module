@@ -289,6 +289,12 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     $fields['status'] = FALSE;
   }
 
+
+  watchdog('node_publish_pay', '1: Node ID is:' . $nid, array(), WATCHDOG_NOTICE);
+  watchdog('node_publish_pay', '1: $fields are:' . serialize($fields), array(), WATCHDOG_NOTICE);
+  watchdog('node_publish_pay', '1: $ad_type are:' . $ipn['option_selection1'], array(), WATCHDOG_NOTICE);
+
+
   // Detect if there is any Ad Type selected.
   $ad_type = !empty($ipn['option_selection1']) ? $ipn['option_selection1'] : FALSE;
   node_publish_pay_update_payment_data($nid, $fields, $ad_type);
@@ -360,7 +366,7 @@ function node_publish_pay_get_payment_data($txn_id) {
  * @param array $values
  *   Node's payment data.
  */
-function node_publish_pay_update_payment_data($nid, $values = array(), $ad_type = FALSE) {
+function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
 
   if (empty($values)) {
     return;
@@ -370,12 +376,15 @@ function node_publish_pay_update_payment_data($nid, $values = array(), $ad_type 
   $allowed_fields = array('status', 'payment_status', 'txn_id', 'subscr_id');
   $fields = array_intersect_key($values, $allowed_fields);
 
+
+  watchdog('node_publish_pay', '1: array_intersect_key is:' . serialize($fields), array(), WATCHDOG_NOTICE);
+
   if (!empty($fields)) {
     try {
       $node = node_load($nid);
 
-      foreach ($fields as $field_name => $value) {
-        $node->{$field_name} = $value;
+      foreach ($fields as $property_name => $value) {
+        $node->{$property_name} = $value;
       }
 
       // Update the node status in a proper way.
@@ -383,12 +392,6 @@ function node_publish_pay_update_payment_data($nid, $values = array(), $ad_type 
         if (!empty($node->nid) && $node->status != $fields['status']) {
           $node->status = $fields['status'];
         }
-      }
-
-      // Invoke the rules event if possible.
-      if (function_exists('rules_invoke_event') && $fields['payment_status'] == 'Completed') {
-        $user = user_load($node->uid);
-        rules_invoke_event('node_publish_pay_payment_is_completed', $user, $node);
       }
 
       // Update the Ad Type reference(unconfirmed field/term names);
@@ -401,7 +404,14 @@ function node_publish_pay_update_payment_data($nid, $values = array(), $ad_type 
         }
       }
 
+      // Save the node.
       node_save($node);
+
+      // Invoke the rules event if possible.
+      if (function_exists('rules_invoke_event') && $fields['payment_status'] == 'Completed') {
+        $user = user_load($node->uid);
+        rules_invoke_event('node_publish_pay_payment_is_completed', $user, $node);
+      }
     } catch (\Exception $e) {
       watchdog('node_publish_pay', 'The payment data for node with NID @nid failed to be updated.', array('@nid' => $nid), WATCHDOG_ERROR);
     }
