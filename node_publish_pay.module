@@ -212,7 +212,10 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
 
   // Make sure this is the expected POST action as we need these data.
   if (empty($ipn['payment_status']) || empty($ipn['subscr_id']) || empty($ipn['txn_id']) || empty($ipn['custom'])) {
-    return;
+    // If this is cancelling notification, allow going further.
+    if ($ipn['txn_type'] != 'subscr_cancel') {
+      return;
+    }
   }
 
   // Check that the receiver_email is an email address
@@ -288,6 +291,11 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     'txn_id' => $ipn['txn_id'],
     'subscr_id' => $ipn['subscr_id'],
   );
+
+  // Fake the Payment status if this is a cancelling request.
+  if ($ipn['txn_type'] == 'subscr_cancel') {
+    $ipn['payment_status'] = 'canceled';
+  }
 
   // Update the node status only when need to Unpublish as only Admin
   // can publish the node after the review.
@@ -414,6 +422,8 @@ function _node_publish_pay_status_info($status) {
       return t('Payment held until your account is verified.');
     case 'completed':
       return t('Payment has been completed.');
+    case 'canceled':
+      return t('The subscription has been cancelled.');
     case 'other':
       return t('Pending for an unknown reason.');
     default:
