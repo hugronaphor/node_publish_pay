@@ -372,12 +372,16 @@ function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
     return;
   }
 
-  // Allow only specific values.
-  $allowed_fields = array('status', 'payment_status', 'txn_id', 'subscr_id');
+  // Allow only specific values(comparing the keys).
+  $allowed_fields = array(
+    'status' => '',
+    'payment_status' => '',
+    'txn_id' => '',
+    'subscr_id' => ''
+  );
   $fields = array_intersect_key($values, $allowed_fields);
 
-
-  watchdog('node_publish_pay', '1: array_intersect_key is:' . serialize($fields), array(), WATCHDOG_NOTICE);
+  watchdog('node_publish_pay', '1: array_intersect_key are:' . serialize($fields), array(), WATCHDOG_NOTICE);
 
   if (!empty($fields)) {
     try {
