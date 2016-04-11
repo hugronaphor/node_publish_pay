@@ -29,6 +29,13 @@ function node_publish_pay_menu() {
     'type' => MENU_LOCAL_TASK,
   );
 
+  $items['user/properties'] = array(
+    'page callback' => 'node_publish_pay_properties_redirect',
+    'page arguments' => array(),
+    'access callback' => TRUE,
+    'type' => MENU_NORMAL_ITEM,
+  );
+
   $items['node-publish-pay/%/cancel'] = array(
     'title' => 'Cancel the subscription',
     'page callback' => 'drupal_get_form',
@@ -354,6 +361,11 @@ function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
   }
 }
 
+/**
+ * User's Properties page.
+ *
+ * @param object $user
+ */
 function node_publish_pay_get_properties($user) {
   $view = views_get_view('users_properties');
   if (!$view) {
@@ -365,6 +377,18 @@ function node_publish_pay_get_properties($user) {
   $view->pre_execute();
   $view->execute();
   return $view->render();
+}
+
+/**
+ * Redirect to the current "User's Properties" page.
+ */
+function node_publish_pay_properties_redirect() {
+  global $user;
+
+  // Only for registered users.
+  if (!empty($user->uid)) {
+    drupal_goto('user/' . $user->uid . '/properties');
+  }
 }
 
 /**
