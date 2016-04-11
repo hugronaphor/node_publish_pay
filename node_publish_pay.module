@@ -210,10 +210,13 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     return FALSE;
   }
 
+  // Detect Subscription cancellation request.
+  $is_cancel_request = ($ipn['txn_type'] == 'subscr_cancel');
+
   // Make sure this is the expected POST action as we need these data.
   if (empty($ipn['payment_status']) || empty($ipn['subscr_id']) || empty($ipn['txn_id']) || empty($ipn['custom'])) {
-    // If this is cancelling notification, allow going further.
-    if ($ipn['txn_type'] != 'subscr_cancel') {
+    // Break the execution if this is not a cancellation request.
+    if (!$is_cancel_request) {
       return;
     }
   }
@@ -268,7 +271,7 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   }
 
   // txn_id is not available when cancelling the subscription, so using subscr_id.
-  if ($ipn['txn_type'] == 'subscr_cancel') {
+  if ($is_cancel_request) {
     $payment_data = node_publish_pay_get_payment_data_by_subscr_id($ipn['subscr_id']);
   }
   else {
@@ -283,26 +286,28 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   }
 
   // Handle the first time payment.
-  if (empty($payment_data['nid']) && !empty($ipn['custom'])) {
-    $new_nid = $ipn['custom'];
-  }
-  else {
-    watchdog('node_publish_pay', 'The node ID is missing from IPN.', array(), WATCHDOG_NOTICE);
+  if (!$is_cancel_request) {
+    if (empty($payment_data['nid']) && !empty($ipn['custom'])) {
+      $new_nid = $ipn['custom'];
+    }
+    else {
+      watchdog('node_publish_pay', 'The node ID is missing from IPN.', array(), WATCHDOG_NOTICE);
+    }
   }
 
   // If reached here, we can safely update the node Payment data.
   $nid = isset($new_nid) ? $new_nid : $payment_data['nid'];
+  // Fake the Payment status if this is a cancelling request.
+  if ($is_cancel_request) {
+    $ipn['payment_status'] = 'canceled';
+  }
 
   $fields = array(
     'payment_status' => $ipn['payment_status'],
-    'txn_id' => $ipn['txn_id'],
+    // In the case of cancelling.
+    'txn_id' => !empty($ipn['txn_id']) ? $ipn['txn_id'] : '',
     'subscr_id' => $ipn['subscr_id'],
   );
-
-  // Fake the Payment status if this is a cancelling request.
-  if ($ipn['txn_type'] == 'subscr_cancel') {
-    $ipn['payment_status'] = 'canceled';
-  }
 
   // Update the node status only when need to Unpublish as only Admin
   // can publish the node after the review.
@@ -386,6 +391,8 @@ function node_publish_pay_get_properties($user) {
   if (!$view) {
     return;
   }
+
+  drupal_set_title($user->name . '\'s Properties');
 
   $view->set_display('user_properties');
   $view->set_arguments(array($user->uid));

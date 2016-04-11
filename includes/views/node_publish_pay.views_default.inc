@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * User's Properties page.
+ */
 function node_publish_pay_views_default_views() {
   $view = new view();
   $view->name = 'users_properties';
@@ -104,20 +107,10 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['fields']['payment_status']['table'] = 'node';
   $handler->display->display_options['fields']['payment_status']['field'] = 'payment_status';
   $handler->display->display_options['fields']['payment_status']['label'] = 'Payment Status';
+  $handler->display->display_options['fields']['payment_status']['empty'] = 'Processing...';
+  $handler->display->display_options['fields']['payment_status']['empty_zero'] = TRUE;
+  $handler->display->display_options['fields']['payment_status']['hide_alter_empty'] = FALSE;
   $handler->display->display_options['fields']['payment_status']['link_to_node'] = FALSE;
-  /* Field: Content: Subscription ID(subscr_id) */
-  $handler->display->display_options['fields']['subscr_id']['id'] = 'subscr_id';
-  $handler->display->display_options['fields']['subscr_id']['table'] = 'node';
-  $handler->display->display_options['fields']['subscr_id']['field'] = 'subscr_id';
-  $handler->display->display_options['fields']['subscr_id']['label'] = 'Subscription ID';
-  $handler->display->display_options['fields']['subscr_id']['link_to_node'] = FALSE;
-  /* Field: Content: Transaction identification(txn_id) */
-  $handler->display->display_options['fields']['txn_id']['id'] = 'txn_id';
-  $handler->display->display_options['fields']['txn_id']['table'] = 'node';
-  $handler->display->display_options['fields']['txn_id']['field'] = 'txn_id';
-  $handler->display->display_options['fields']['txn_id']['label'] = 'Transaction identification';
-  $handler->display->display_options['fields']['txn_id']['exclude'] = TRUE;
-  $handler->display->display_options['fields']['txn_id']['link_to_node'] = FALSE;
   /* Field: Content: Nid */
   $handler->display->display_options['fields']['nid']['id'] = 'nid';
   $handler->display->display_options['fields']['nid']['table'] = 'node';
@@ -125,6 +118,12 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['fields']['nid']['label'] = '';
   $handler->display->display_options['fields']['nid']['exclude'] = TRUE;
   $handler->display->display_options['fields']['nid']['element_label_colon'] = FALSE;
+  /* Field: Content: Published */
+  $handler->display->display_options['fields']['status']['id'] = 'status';
+  $handler->display->display_options['fields']['status']['table'] = 'node';
+  $handler->display->display_options['fields']['status']['field'] = 'status';
+  $handler->display->display_options['fields']['status']['type'] = 'unicode-yes-no';
+  $handler->display->display_options['fields']['status']['not'] = 0;
   /* Field: Global: Custom text */
   $handler->display->display_options['fields']['nothing']['id'] = 'nothing';
   $handler->display->display_options['fields']['nothing']['table'] = 'views';
@@ -133,12 +132,6 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['fields']['nothing']['alter']['text'] = 'Cancel';
   $handler->display->display_options['fields']['nothing']['alter']['make_link'] = TRUE;
   $handler->display->display_options['fields']['nothing']['alter']['path'] = 'node-publish-pay/[nid]/cancel';
-  /* Field: Content: Published */
-  $handler->display->display_options['fields']['status']['id'] = 'status';
-  $handler->display->display_options['fields']['status']['table'] = 'node';
-  $handler->display->display_options['fields']['status']['field'] = 'status';
-  $handler->display->display_options['fields']['status']['type'] = 'unicode-yes-no';
-  $handler->display->display_options['fields']['status']['not'] = 0;
   /* Sort criterion: Content: Post date */
   $handler->display->display_options['sorts']['created']['id'] = 'created';
   $handler->display->display_options['sorts']['created']['table'] = 'node';
@@ -156,7 +149,6 @@ function node_publish_pay_views_default_views() {
 
   /* Display: User's Properties */
   $handler = $view->new_display('block', 'User\'s Properties', 'user_properties');
-
 
   $views[$view->name] = $view;
 
