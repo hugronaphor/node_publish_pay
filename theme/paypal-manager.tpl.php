@@ -1,6 +1,6 @@
 <div class="paypal-subscribe-wrapper">
 
-  <?php if (empty($payment_status)) : ?>
+  <?php if (!empty($payment_status)) : ?>
     <div class="payment-status">
       <?php print $payment_status; ?>
     </div>

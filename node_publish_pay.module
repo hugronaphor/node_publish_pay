@@ -273,16 +273,18 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   // Get current Payment data.
   $payment_data = node_publish_pay_get_payment_data_by_subscr_id($ipn['subscr_id']);
 
-  // Handle the first time payment.
-  if (empty($payment_data['nid']) && !empty($ipn['custom'])) {
-    $new_nid = $ipn['custom'];
+  // Detect the Node ID.
+  if (!empty($payment_data['nid'])) {
+    $nid = $payment_data['nid'];
+  }
+  elseif (!empty($ipn['custom'])) {
+    $nid = $ipn['custom'];
   }
   else {
     watchdog('node_publish_pay', 'The node ID is missing from IPN.', array(), WATCHDOG_NOTICE);
+    return;
   }
 
-  // If reached here, we can safely update the node Payment data.
-  $nid = isset($new_nid) ? $new_nid : $payment_data['nid'];
   // Fake the Payment status if this is a cancelling request.
   if ($is_cancel_request) {
     $ipn['payment_status'] = 'canceled';
