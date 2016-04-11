@@ -81,5 +81,4 @@ function node_publish_pay_uninstall() {
     db_delete('views_view')->condition('vid', 'users_properties')->execute();
   } catch (Exception $e) {
   }
-  views_invalidate_cache();
 }
