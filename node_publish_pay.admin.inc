@@ -30,13 +30,13 @@ function node_publish_pay_admin_form() {
   );
 
   $content = variable_get('node_publish_pay_subscribe_info', array());
-  $form['general']['node_publish_pay_subscribe_info'] = [
+  $form['general']['node_publish_pay_subscribe_info'] = array(
     '#type' => 'text_format',
     '#format' => !empty($content['format']) ? $content['format'] : 'plain_text',
     '#title' => t('Payment instructions displayed for the users.'),
     '#default_value' => !empty($content['value']) ? $content['value'] : '',
     '#rows' => 5,
-  ];
+  );
 
   $form['payment'] = array(
     '#type' => 'fieldset',

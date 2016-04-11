@@ -107,7 +107,7 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['fields']['payment_status']['table'] = 'node';
   $handler->display->display_options['fields']['payment_status']['field'] = 'payment_status';
   $handler->display->display_options['fields']['payment_status']['label'] = 'Payment Status';
-  $handler->display->display_options['fields']['payment_status']['empty'] = 'Processing...';
+  $handler->display->display_options['fields']['payment_status']['empty'] = 'None';
   $handler->display->display_options['fields']['payment_status']['empty_zero'] = TRUE;
   $handler->display->display_options['fields']['payment_status']['hide_alter_empty'] = FALSE;
   $handler->display->display_options['fields']['payment_status']['link_to_node'] = FALSE;

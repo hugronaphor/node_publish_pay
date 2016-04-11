@@ -159,11 +159,11 @@ function node_publish_pay_field_extra_fields() {
   $ct = explode(',', variable_get('node_publish_pay_ct', ''));
   foreach ($ct as $content_type) {
     $content_type = trim($content_type);
-    $extra['node'][$content_type]['display']['pay_manager'] = [
+    $extra['node'][$content_type]['display']['pay_manager'] = array(
       'label' => t('PayPal Pay Manager'),
       'description' => t('PayPal Pay Manager.'),
       'weight' => 0,
-    ];
+    );
   }
 
   return $extra;
@@ -200,7 +200,6 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
   $ipn = $_POST;
 
   if (NODE_PUBLISH_PAY_DEVEL && function_exists('dsm')) {
-    dsm($ipn, 'Original IPN Log');
     watchdog('node_publish_pay', serialize($ipn), array(), WATCHDOG_NOTICE);
   }
 
@@ -333,6 +332,7 @@ function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
   if (!empty($fields)) {
     try {
       $node = node_load($nid);
+      $original_payment_status = $node->payment_status;
 
       foreach ($fields as $property_name => $value) {
         $node->{$property_name} = $value;
@@ -358,8 +358,8 @@ function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
       // Save the node.
       node_save($node);
 
-      // Invoke the rules event if possible.
-      if (function_exists('rules_invoke_event') && $fields['payment_status'] == 'Completed') {
+      // Invoke the rules event if possible and needed.
+      if (function_exists('rules_invoke_event') && ($original_payment_status != $fields['payment_status'] && $fields['payment_status'] == 'Completed')) {
         $user = user_load($node->uid);
         rules_invoke_event('node_publish_pay_payment_is_completed', $user, $node);
       }
