@@ -26,12 +26,12 @@
           <tr>
             <td>
               <select name="os0">
-                <option value="no_ad">No Ad(simple listing) :
-                  $1.00 CAD - daily
+                <option value="No Ad(simple listing)">No Ad(simple listing) :
+                  $1.00 CAD - daily $1.00 CAD - daily
                 </option>
-                <option value="or">Or : $2.00 CAD - daily</option>
-                <option value="argent">Argent : $3.00 CAD - daily</option>
-                <option value="bronze">Bronze : $4.00 CAD - daily</option>
+                <option value="Or">Or : $2.00 CAD - daily</option>
+                <option value="Argent">Argent : $3.00 CAD - daily</option>
+                <option value="Bronze">Bronze : $4.00 CAD - daily</option>
               </select>
             </td>
           </tr>

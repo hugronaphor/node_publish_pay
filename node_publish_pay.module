@@ -205,7 +205,8 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
 
   // Make sure this is the expected POST action as we need these data.
   if (empty($ipn['payment_status']) || empty($ipn['subscr_id']) || empty($ipn['txn_id']) || empty($ipn['custom'])) {
-    return;
+    watchdog('node_publish_pay', 'Parameters are missing!!!', array(), WATCHDOG_NOTICE);
+    // return;
   }
 
   // Check that the receiver_email is an email address
