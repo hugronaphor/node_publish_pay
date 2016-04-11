@@ -378,6 +378,13 @@ function node_publish_pay_update_payment_data($nid, $values = array()) {
           node_save($node);
         }
       }
+
+      // Invoke the rules event if possible.
+      if (function_exists('rules_invoke_event') && $fields['payment_status'] == 'Completed') {
+        $node = node_load($nid);
+        $user = user_load($node->uid);
+        rules_invoke_event('node_publish_pay_payment_is_completed', $user, $node);
+      }
     } catch (\Exception $e) {
       watchdog('node_publish_pay', 'The payment data for node with NID @nid failed to be updated.', array('@nid' => $nid), WATCHDOG_ERROR);
     }

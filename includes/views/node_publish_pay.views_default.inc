@@ -33,6 +33,7 @@ function node_publish_pay_views_default_views() {
     'txn_id' => 'txn_id',
     'nid' => 'nid',
     'nothing' => 'nothing',
+    'status' => 'status',
   );
   $handler->display->display_options['style_options']['default'] = '-1';
   $handler->display->display_options['style_options']['info'] = array(
@@ -46,21 +47,21 @@ function node_publish_pay_views_default_views() {
     'payment_status' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
-      'align' => '',
+      'align' => 'views-align-center',
       'separator' => '',
       'empty_column' => 0,
     ),
     'subscr_id' => array(
       'sortable' => 0,
       'default_sort_order' => 'asc',
-      'align' => '',
+      'align' => 'views-align-center',
       'separator' => '',
       'empty_column' => 0,
     ),
     'txn_id' => array(
       'sortable' => 0,
       'default_sort_order' => 'asc',
-      'align' => '',
+      'align' => 'views-align-center',
       'separator' => '',
       'empty_column' => 0,
     ),
@@ -72,7 +73,14 @@ function node_publish_pay_views_default_views() {
       'empty_column' => 0,
     ),
     'nothing' => array(
-      'align' => '',
+      'align' => 'views-align-center',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'status' => array(
+      'sortable' => 0,
+      'default_sort_order' => 'asc',
+      'align' => 'views-align-center',
       'separator' => '',
       'empty_column' => 0,
     ),
@@ -125,6 +133,12 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['fields']['nothing']['alter']['text'] = 'Cancel';
   $handler->display->display_options['fields']['nothing']['alter']['make_link'] = TRUE;
   $handler->display->display_options['fields']['nothing']['alter']['path'] = 'node-publish-pay/[nid]/cancel';
+  /* Field: Content: Published */
+  $handler->display->display_options['fields']['status']['id'] = 'status';
+  $handler->display->display_options['fields']['status']['table'] = 'node';
+  $handler->display->display_options['fields']['status']['field'] = 'status';
+  $handler->display->display_options['fields']['status']['type'] = 'unicode-yes-no';
+  $handler->display->display_options['fields']['status']['not'] = 0;
   /* Sort criterion: Content: Post date */
   $handler->display->display_options['sorts']['created']['id'] = 'created';
   $handler->display->display_options['sorts']['created']['table'] = 'node';
@@ -142,6 +156,7 @@ function node_publish_pay_views_default_views() {
 
   /* Display: User's Properties */
   $handler = $view->new_display('block', 'User\'s Properties', 'user_properties');
+
 
   $views[$view->name] = $view;
 
