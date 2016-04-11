@@ -267,11 +267,18 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     return FALSE;
   }
 
-  // Exit if the IPN has already been processed.
-  if (!empty($ipn['txn_id']) && $payment_data = node_publish_pay_get_payment_data($ipn['txn_id'])) {
-    if ($payment_data['payment_status'] == $ipn['payment_status']) {
-      watchdog('node_publish_pay', 'Attempted to process an IPN that has already been processed with transaction ID @txn_id.', array('@txn_id' => $ipn['txn_id']), WATCHDOG_NOTICE);
-      return FALSE;
+  // txn_id is not available when cancelling the subscription, so using subscr_id.
+  if ($ipn['txn_type'] == 'subscr_cancel') {
+    $payment_data = node_publish_pay_get_payment_data_by_subscr_id($ipn['subscr_id']);
+  }
+  else {
+    // Exit if the IPN has already been processed.
+    $payment_data = node_publish_pay_get_payment_data($ipn['txn_id']);
+    if (!empty($ipn['txn_id']) && $payment_data) {
+      if ($payment_data['payment_status'] == $ipn['payment_status']) {
+        watchdog('node_publish_pay', 'Attempted to process an IPN that has already been processed with transaction ID @txn_id.', array('@txn_id' => $ipn['txn_id']), WATCHDOG_NOTICE);
+        return FALSE;
+      }
     }
   }
 
@@ -434,13 +441,28 @@ function _node_publish_pay_status_info($status) {
 /**
  * Get the payment data by txn_id.
  *
- * @param $txn_id
+ * @param string $txn_id
  * @return array
  */
 function node_publish_pay_get_payment_data($txn_id) {
   $query = db_select('node', 'n')
     ->fields('n', array('nid', 'payment_status'))
     ->condition('n.txn_id', $txn_id);
+
+  $result = $query->execute()->fetchAll();
+  return !empty($result) ? (array) reset($result) : array();
+}
+
+/**
+ * Get the payment data by subscr_id.
+ *
+ * @param string $subscr_id
+ * @return array
+ */
+function node_publish_pay_get_payment_data_by_subscr_id($subscr_id) {
+  $query = db_select('node', 'n')
+    ->fields('n', array('nid', 'payment_status'))
+    ->condition('n.subscr_id', $subscr_id);
 
   $result = $query->execute()->fetchAll();
   return !empty($result) ? (array) reset($result) : array();
