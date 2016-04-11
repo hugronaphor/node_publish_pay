@@ -205,8 +205,7 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
 
   // Make sure this is the expected POST action as we need these data.
   if (empty($ipn['payment_status']) || empty($ipn['subscr_id']) || empty($ipn['txn_id']) || empty($ipn['custom'])) {
-    watchdog('node_publish_pay', 'Parameters are missing!!!', array(), WATCHDOG_NOTICE);
-    // return;
+    return;
   }
 
   // Check that the receiver_email is an email address
@@ -289,15 +288,70 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
     $fields['status'] = FALSE;
   }
 
-
-  watchdog('node_publish_pay', '1: Node ID is:' . $nid, array(), WATCHDOG_NOTICE);
-  watchdog('node_publish_pay', '1: $fields are:' . serialize($fields), array(), WATCHDOG_NOTICE);
-  watchdog('node_publish_pay', '1: $ad_type are:' . $ipn['option_selection1'], array(), WATCHDOG_NOTICE);
-
-
   // Detect if there is any Ad Type selected.
   $ad_type = !empty($ipn['option_selection1']) ? $ipn['option_selection1'] : FALSE;
   node_publish_pay_update_payment_data($nid, $fields, $ad_type);
+}
+
+/**
+ * Update the payment data by Node ID.
+ *
+ * @param int $nid
+ *   The Node ID.
+ * @param array $values
+ *   Node's payment data.
+ */
+function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
+
+  if (empty($values)) {
+    return;
+  }
+
+  // Allow only specific values(comparing the keys).
+  $fields = array_intersect_key($values, array(
+    'status' => '',
+    'payment_status' => '',
+    'txn_id' => '',
+    'subscr_id' => ''
+  ));
+
+  if (!empty($fields)) {
+    try {
+      $node = node_load($nid);
+
+      foreach ($fields as $property_name => $value) {
+        $node->{$property_name} = $value;
+      }
+
+      // Update the node status in a proper way.
+      if (isset($fields['status'])) {
+        if (!empty($node->nid) && $node->status != $fields['status']) {
+          $node->status = $fields['status'];
+        }
+      }
+
+      // Update the Ad Type reference(unconfirmed field/term names);
+      // @todo: Confirm the field and vocabulary names.
+      if ($ad_type) {
+        $ad_term = taxonomy_get_term_by_name($ad_type, 'partner_options');
+        if (!empty($ad_term)) {
+          $term = reset($ad_term);
+          $node->field_partner_payment_opt[$node->language][0]['tid'] = $term->tid;
+        }
+      }
+
+      // Save the node.
+      node_save($node);
+
+      // Invoke the rules event if possible.
+      if (function_exists('rules_invoke_event') && $fields['payment_status'] == 'Completed') {
+        $user = user_load($node->uid);
+        rules_invoke_event('node_publish_pay_payment_is_completed', $user, $node);
+      }
+    } catch (\Exception $e) {
+      watchdog('node_publish_pay', 'The payment data for node with NID @nid failed to be updated.', array('@nid' => $nid), WATCHDOG_ERROR);
+    }
+  }
 }
 
 function node_publish_pay_get_properties($user) {
@@ -356,68 +410,4 @@ function node_publish_pay_get_payment_data($txn_id) {
 
   $result = $query->execute()->fetchAll();
   return !empty($result) ? (array) reset($result) : array();
-}
-
-/**
- * Update the payment data by Node ID.
- *
- * @param int $nid
- *   The Node ID.
- * @param array $values
- *   Node's payment data.
- */
-function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
-
-  if (empty($values)) {
-    return;
-  }
-
-  // Allow only specific values(comparing the keys).
-  $allowed_fields = array(
-    'status' => '',
-    'payment_status' => '',
-    'txn_id' => '',
-    'subscr_id' => ''
-  );
-  $fields = array_intersect_key($values, $allowed_fields);
-
-  watchdog('node_publish_pay', '1: array_intersect_key are:' . serialize($fields), array(), WATCHDOG_NOTICE);
-
-  if (!empty($fields)) {
-    try {
-      $node = node_load($nid);
-
-      foreach ($fields as $property_name => $value) {
-        $node->{$property_name} = $value;
-      }
-
-      // Update the node status in a proper way.
-      if (isset($fields['status'])) {
-        if (!empty($node->nid) && $node->status != $fields['status']) {
-          $node->status = $fields['status'];
-        }
-      }
-
-      // Update the Ad Type reference(unconfirmed field/term names);
-      // @todo: Confirm the field and vocabulary names.
-      if ($ad_type) {
-        $ad_term = taxonomy_get_term_by_name($ad_type, 'partner_options');
-        if (!empty($ad_term)) {
-          $term = reset($ad_term);
-          $node->field_partner_payment_opt[$node->language][0]['tid'] = $term->tid;
-        }
-      }
-
-      // Save the node.
-      node_save($node);
-
-      // Invoke the rules event if possible.
-      if (function_exists('rules_invoke_event') && $fields['payment_status'] == 'Completed') {
-        $user = user_load($node->uid);
-        rules_invoke_event('node_publish_pay_payment_is_completed', $user, $node);
-      }
-    } catch (\Exception $e) {
-      watchdog('node_publish_pay', 'The payment data for node with NID @nid failed to be updated.', array('@nid' => $nid), WATCHDOG_ERROR);
-    }
-  }
 }
