@@ -175,7 +175,6 @@ function node_publish_pay_field_extra_fields() {
  * Populate the Subscription button field.
  */
 function node_publish_pay_node_view($node, $view_mode) {
-
   $extra_fields = field_extra_fields_get_display('node', $node->type, $view_mode);
   // Add the PayPal button if the node is Unpublished.
   if (empty($node->status) && !empty($extra_fields['pay_manager']['visible'])) {

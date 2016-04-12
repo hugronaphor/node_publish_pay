@@ -88,6 +88,12 @@ function _node_publish_pay_cancel_subscription($subscr_id) {
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
   curl_setopt($ch, CURLOPT_POST, 1);
 
+  // Support request for older PHP version.
+  if (version_compare(PHP_VERSION, '5.4.0') <= 0) {
+    var_dump('test');
+    curl_setopt($ch, CURLOPT_SSLVERSION, 6);
+  }
+
   // Set the API parameters for this transaction
   curl_setopt($ch, CURLOPT_POSTFIELDS, $api_request);
 
