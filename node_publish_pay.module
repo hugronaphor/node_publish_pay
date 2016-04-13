@@ -7,6 +7,10 @@
 
 define('NODE_PUBLISH_PAY_DEVEL', variable_get('node_publish_pay_devel'));
 
+define('NODE_PUBLISH_PAY_SIMPLE_PAY_CT', 'property');
+define('NODE_PUBLISH_PAY_OPTIONS_PAY_CT', 'partner');
+define('NODE_PUBLISH_PAY_PARTNER_OPTIONS_PAYMENT_FIELD', 'field_partner_payment_opt');
+
 /**
  * Implements hook_menu().
  */
@@ -21,15 +25,15 @@ function node_publish_pay_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  $items['user/%user/properties'] = array(
-    'title' => 'Properties',
+  $items['user/%user/paid_pages'] = array(
+    'title' => 'Paid Pages',
     'page callback' => 'node_publish_pay_get_properties',
     'page arguments' => array(1),
     'access arguments' => array('allow manage subscription'),
     'type' => MENU_LOCAL_TASK,
   );
 
-  $items['user/properties'] = array(
+  $items['user/paid_pages'] = array(
     'page callback' => 'node_publish_pay_properties_redirect',
     'page arguments' => array(),
     'access callback' => TRUE,
@@ -55,7 +59,7 @@ function node_publish_pay_menu() {
   );
 
   $items['admin/config/node_publish_pay'] = array(
-    'title' => 'Node Publish Pay',
+    'title' => 'Node pay and publish',
     'type' => MENU_NORMAL_ITEM,
     'description' => 'Configure Node Publish Pay recurring settings.',
     'page callback' => 'drupal_get_form',
@@ -104,11 +108,11 @@ function node_publish_pay_form_alter(&$form, &$form_state, $form_id) {
     return;
   }
 
-  // Check if this is a payable CT.
-  $content_types = explode(',', variable_get('node_publish_pay_ct', ''));
-  if (empty($content_types)) {
-    return;
-  }
+  // Get payable CT.
+  $content_types = array(
+    NODE_PUBLISH_PAY_SIMPLE_PAY_CT,
+    NODE_PUBLISH_PAY_OPTIONS_PAY_CT
+  );
 
   // Make sure we are on the payable node edit/create page.
   $form_ids = array_map(function ($content_type) {
@@ -119,12 +123,15 @@ function node_publish_pay_form_alter(&$form, &$form_state, $form_id) {
     return;
   }
 
-  // Disable the Publishing options for everyone as publishing needs to happen
-  // following the full workflow. Cancelling will happen only when
-  // the payment has not a completed status.
   if ($user->uid != 1) {
+    // Disable the Publishing options for everyone as publishing needs to happen
+    // following the full workflow. Cancelling will happen only when
+    // the payment has not a completed status.
     $form['options']['#access'] = FALSE;
     $form['options']['status']['#default_value'] = FALSE;
+
+    // Disable the "Options de paiements de partenaires" reference.
+    $form[NODE_PUBLISH_PAY_PARTNER_OPTIONS_PAYMENT_FIELD]['#access'] = FALSE;
   }
 }
 
@@ -133,8 +140,22 @@ function node_publish_pay_form_alter(&$form, &$form_state, $form_id) {
  */
 function node_publish_pay_theme($existing, $type, $theme, $path) {
   return array(
-    'paypal_manager' => array(
-      'template' => 'paypal-manager',
+    'paypal_simple_btn' => array(
+      'template' => 'paypal-simple-btn',
+      'arguments' => array(
+        'vars' => array(
+          'nid' => '',
+          'paypal_subscribe_info' => '',
+          'payment_status' => '',
+          'is_payment_completed' => FALSE,
+          'publish_link' => '',
+          'paypal_host' => '',
+        )
+      ),
+      'path' => $path . '/theme',
+    ),
+    'paypal_options_btn' => array(
+      'template' => 'paypal-options-btn',
       'arguments' => array(
         'vars' => array(
           'nid' => '',
@@ -156,9 +177,10 @@ function node_publish_pay_theme($existing, $type, $theme, $path) {
  * Define the Subscription extra field.
  */
 function node_publish_pay_field_extra_fields() {
-  $ct = explode(',', variable_get('node_publish_pay_ct', ''));
-  foreach ($ct as $content_type) {
-    $content_type = trim($content_type);
+  foreach (array(
+             NODE_PUBLISH_PAY_SIMPLE_PAY_CT,
+             NODE_PUBLISH_PAY_OPTIONS_PAY_CT
+           ) as $content_type) {
     $extra['node'][$content_type]['display']['pay_manager'] = array(
       'label' => t('PayPal Pay Manager'),
       'description' => t('PayPal Pay Manager.'),
@@ -178,9 +200,21 @@ function node_publish_pay_node_view($node, $view_mode) {
   $extra_fields = field_extra_fields_get_display('node', $node->type, $view_mode);
   // Add the PayPal button if the node is Unpublished.
   if (empty($node->status) && !empty($extra_fields['pay_manager']['visible'])) {
-    $info = variable_get('node_publish_pay_subscribe_info', array('value' => ''));
+    // Get the data for specific Content Type.
+    if ($node->type == NODE_PUBLISH_PAY_OPTIONS_PAY_CT) {
+      $info = variable_get('node_publish_pay_options_subscribe_info', array('value' => ''));
+      $theme = 'paypal_options_btn';
+    }
+    elseif ($node->type == NODE_PUBLISH_PAY_SIMPLE_PAY_CT) {
+      $info = variable_get('node_publish_pay_simple_subscribe_info', array('value' => ''));
+      $theme = 'paypal_simple_btn';
+    }
+    else {
+      return;
+    }
+
     $node->content['pay_manager'] = array(
-      '#markup' => theme('paypal_manager', array(
+      '#markup' => theme($theme, array(
         'nid' => $node->nid,
         'paypal_subscribe_info' => nl2br($info['value']),
         'payment_status' => _node_publish_pay_status_info($node->payment_status),
@@ -313,6 +347,7 @@ function node_publish_pay_process_ipn($post_array = array(), $debug = FALSE) {
  *   The Node ID.
  * @param array $values
  *   Node's payment data.
+ * @param string|bool $ad_type
  */
 function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
 
@@ -344,13 +379,14 @@ function node_publish_pay_update_payment_data($nid, $values, $ad_type = FALSE) {
         }
       }
 
-      // Update the Ad Type reference(unconfirmed field/term names);
-      // @todo: Confirm the field and vocabulary names.
+      // Update the Ad Type reference.
+      // Reset the term values.
+      $node->{NODE_PUBLISH_PAY_PARTNER_OPTIONS_PAYMENT_FIELD} = array();
       if ($ad_type) {
         $ad_term = taxonomy_get_term_by_name($ad_type, 'partner_options');
         if (!empty($ad_term)) {
           $term = reset($ad_term);
-          $node->field_partner_payment_opt[$node->language][0]['tid'] = $term->tid;
+          $node->{NODE_PUBLISH_PAY_PARTNER_OPTIONS_PAYMENT_FIELD}[$node->language][0]['tid'] = $term->tid;
         }
       }
 
@@ -379,7 +415,7 @@ function node_publish_pay_get_properties($user) {
     return;
   }
 
-  drupal_set_title($user->name . '\'s Properties');
+  drupal_set_title($user->name . '\'s Paid Pages');
 
   $view->set_display('user_properties');
   $view->set_arguments(array($user->uid));
@@ -396,7 +432,7 @@ function node_publish_pay_properties_redirect() {
 
   // Only for registered users.
   if (!empty($user->uid)) {
-    drupal_goto('user/' . $user->uid . '/properties');
+    drupal_goto('user/' . $user->uid . '/paid_pages');
   }
 }
 

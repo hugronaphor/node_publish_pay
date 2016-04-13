@@ -68,7 +68,6 @@ function node_publish_pay_uninstall() {
   db_drop_field('node', 'payment_status');
 
   // Delete all the variables.
-  variable_del('node_publish_pay_ct');
   variable_del('node_publish_pay_devel');
   variable_del('node_publish_pay_subscribe_info');
   variable_del('node_publish_pay_receiver_email');
@@ -76,6 +75,8 @@ function node_publish_pay_uninstall() {
   variable_del('node_publish_pay_api_username');
   variable_del('node_publish_pay_api_password');
   variable_del('node_publish_pay_api_signature');
+  variable_del('node_publish_pay_options_subscribe_info');
+  variable_del('node_publish_pay_simple_subscribe_info');
 
   // Make sure User's Properties views is deleted.
   try {

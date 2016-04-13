@@ -50,7 +50,7 @@ function node_publish_pay_cancel_confirm_form_submit($form, &$form_state) {
     ), WATCHDOG_ERROR);
   }
 
-  $form_state['redirect'] = 'user/' . $user->uid . '/properties';
+  $form_state['redirect'] = 'user/' . $user->uid . '/paid_pages';
 }
 
 /**
@@ -90,7 +90,6 @@ function _node_publish_pay_cancel_subscription($subscr_id) {
 
   // Support request for older PHP version.
   if (version_compare(PHP_VERSION, '5.4.0') <= 0) {
-    var_dump('test');
     curl_setopt($ch, CURLOPT_SSLVERSION, 6);
   }
 

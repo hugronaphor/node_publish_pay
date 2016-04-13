@@ -7,16 +7,16 @@ function node_publish_pay_views_default_views() {
   $view = new view();
   $view->name = 'users_properties';
   $view->description = '';
-  $view->tag = 'default';
+  $view->tag = 'node_publish_pay';
   $view->base_table = 'node';
-  $view->human_name = 'User\'s Properties';
+  $view->human_name = 'User\'s Paid Pages';
   $view->core = 7;
   $view->api_version = '3.0';
   $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
 
   /* Display: Master */
   $handler = $view->new_display('default', 'Master', 'default');
-  $handler->display->display_options['title'] = 'Properties';
+  $handler->display->display_options['title'] = 'Paid Pages';
   $handler->display->display_options['use_more_always'] = FALSE;
   $handler->display->display_options['access']['type'] = 'perm';
   $handler->display->display_options['access']['perm'] = 'view own unpublished content';
@@ -31,12 +31,12 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['style_plugin'] = 'table';
   $handler->display->display_options['style_options']['columns'] = array(
     'title' => 'title',
+    'type' => 'type',
     'payment_status' => 'payment_status',
-    'subscr_id' => 'subscr_id',
-    'txn_id' => 'txn_id',
     'nid' => 'nid',
-    'nothing' => 'nothing',
     'status' => 'status',
+    'field_partner_payment_opt' => 'field_partner_payment_opt',
+    'nothing' => 'nothing',
   );
   $handler->display->display_options['style_options']['default'] = '-1';
   $handler->display->display_options['style_options']['info'] = array(
@@ -47,22 +47,15 @@ function node_publish_pay_views_default_views() {
       'separator' => '',
       'empty_column' => 0,
     ),
-    'payment_status' => array(
+    'type' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => 'views-align-center',
       'separator' => '',
       'empty_column' => 0,
     ),
-    'subscr_id' => array(
-      'sortable' => 0,
-      'default_sort_order' => 'asc',
-      'align' => 'views-align-center',
-      'separator' => '',
-      'empty_column' => 0,
-    ),
-    'txn_id' => array(
-      'sortable' => 0,
+    'payment_status' => array(
+      'sortable' => 1,
       'default_sort_order' => 'asc',
       'align' => 'views-align-center',
       'separator' => '',
@@ -75,14 +68,21 @@ function node_publish_pay_views_default_views() {
       'separator' => '',
       'empty_column' => 0,
     ),
-    'nothing' => array(
+    'status' => array(
+      'sortable' => 1,
+      'default_sort_order' => 'asc',
       'align' => 'views-align-center',
       'separator' => '',
       'empty_column' => 0,
     ),
-    'status' => array(
-      'sortable' => 0,
+    'field_partner_payment_opt' => array(
+      'sortable' => 1,
       'default_sort_order' => 'asc',
+      'align' => 'views-align-center',
+      'separator' => '',
+      'empty_column' => 0,
+    ),
+    'nothing' => array(
       'align' => 'views-align-center',
       'separator' => '',
       'empty_column' => 0,
@@ -99,9 +99,13 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['fields']['title']['id'] = 'title';
   $handler->display->display_options['fields']['title']['table'] = 'node';
   $handler->display->display_options['fields']['title']['field'] = 'title';
-  $handler->display->display_options['fields']['title']['label'] = 'Property';
+  $handler->display->display_options['fields']['title']['label'] = 'Page';
   $handler->display->display_options['fields']['title']['alter']['word_boundary'] = FALSE;
   $handler->display->display_options['fields']['title']['alter']['ellipsis'] = FALSE;
+  /* Field: Content: Type */
+  $handler->display->display_options['fields']['type']['id'] = 'type';
+  $handler->display->display_options['fields']['type']['table'] = 'node';
+  $handler->display->display_options['fields']['type']['field'] = 'type';
   /* Field: Content: Node Payment Status */
   $handler->display->display_options['fields']['payment_status']['id'] = 'payment_status';
   $handler->display->display_options['fields']['payment_status']['table'] = 'node';
@@ -124,6 +128,12 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['fields']['status']['field'] = 'status';
   $handler->display->display_options['fields']['status']['type'] = 'unicode-yes-no';
   $handler->display->display_options['fields']['status']['not'] = 0;
+  /* Field: Content: Option de paiement */
+  $handler->display->display_options['fields']['field_partner_payment_opt']['id'] = 'field_partner_payment_opt';
+  $handler->display->display_options['fields']['field_partner_payment_opt']['table'] = 'field_data_field_partner_payment_opt';
+  $handler->display->display_options['fields']['field_partner_payment_opt']['field'] = 'field_partner_payment_opt';
+  $handler->display->display_options['fields']['field_partner_payment_opt']['empty'] = '---';
+  $handler->display->display_options['fields']['field_partner_payment_opt']['type'] = 'taxonomy_term_reference_plain';
   /* Field: Global: Custom text */
   $handler->display->display_options['fields']['nothing']['id'] = 'nothing';
   $handler->display->display_options['fields']['nothing']['table'] = 'views';
@@ -146,9 +156,17 @@ function node_publish_pay_views_default_views() {
   $handler->display->display_options['arguments']['uid']['summary']['number_of_records'] = '0';
   $handler->display->display_options['arguments']['uid']['summary']['format'] = 'default_summary';
   $handler->display->display_options['arguments']['uid']['summary_options']['items_per_page'] = '25';
+  /* Filter criterion: Content: Type */
+  $handler->display->display_options['filters']['type']['id'] = 'type';
+  $handler->display->display_options['filters']['type']['table'] = 'node';
+  $handler->display->display_options['filters']['type']['field'] = 'type';
+  $handler->display->display_options['filters']['type']['value'] = array(
+    'partner' => 'partner',
+    'property' => 'property',
+  );
 
-  /* Display: User's Properties */
-  $handler = $view->new_display('block', 'User\'s Properties', 'user_properties');
+  /* Display: User's Paid Pages */
+  $handler = $view->new_display('block', 'User\'s Paid Pages', 'user_properties');
 
   $views[$view->name] = $view;
 

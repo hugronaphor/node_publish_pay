@@ -16,25 +16,27 @@ function node_publish_pay_admin_form() {
     '#collapsed' => TRUE,
   );
 
-  $form['general']['node_publish_pay_ct'] = array(
-    '#type' => 'textfield',
-    '#title' => t('The Content Types to activate payment'),
-    '#description' => t('*Comma separated string will end up in an array.'),
-    '#default_value' => variable_get('node_publish_pay_ct'),
-  );
-
   $form['general']['node_publish_pay_devel'] = array(
     '#type' => 'checkbox',
     '#title' => t('Development mode'),
     '#default_value' => variable_get('node_publish_pay_devel'),
   );
 
-  $content = variable_get('node_publish_pay_subscribe_info', array());
-  $form['general']['node_publish_pay_subscribe_info'] = array(
+  $options_subscribe_info = variable_get('node_publish_pay_options_subscribe_info', array());
+  $form['general']['node_publish_pay_options_subscribe_info'] = array(
     '#type' => 'text_format',
-    '#format' => !empty($content['format']) ? $content['format'] : 'plain_text',
-    '#title' => t('Payment instructions displayed for the users.'),
-    '#default_value' => !empty($content['value']) ? $content['value'] : '',
+    '#format' => !empty($options_subscribe_info['format']) ? $options_subscribe_info['format'] : 'plain_text',
+    '#title' => t('Payment instructions for Partner.'),
+    '#default_value' => !empty($options_subscribe_info['value']) ? $options_subscribe_info['value'] : '',
+    '#rows' => 5,
+  );
+
+  $simple_subscribe_info = variable_get('node_publish_pay_simple_subscribe_info', array());
+  $form['general']['node_publish_pay_simple_subscribe_info'] = array(
+    '#type' => 'text_format',
+    '#format' => !empty($simple_subscribe_info['format']) ? $simple_subscribe_info['format'] : 'plain_text',
+    '#title' => t('Payment instructions for Property.'),
+    '#default_value' => !empty($simple_subscribe_info['value']) ? $simple_subscribe_info['value'] : '',
     '#rows' => 5,
   );
 
