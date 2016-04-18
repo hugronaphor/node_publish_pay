@@ -9,14 +9,14 @@ function node_publish_pay_views_default_views() {
   $view->description = '';
   $view->tag = 'node_publish_pay';
   $view->base_table = 'node';
-  $view->human_name = 'User\'s Paid Pages';
+  $view->human_name = 'User\'s paid pages';
   $view->core = 7;
   $view->api_version = '3.0';
   $view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
 
   /* Display: Master */
   $handler = $view->new_display('default', 'Master', 'default');
-  $handler->display->display_options['title'] = 'Paid Pages';
+  $handler->display->display_options['title'] = 'Paid pages';
   $handler->display->display_options['use_more_always'] = FALSE;
   $handler->display->display_options['access']['type'] = 'perm';
   $handler->display->display_options['access']['perm'] = 'view own unpublished content';
@@ -166,7 +166,7 @@ function node_publish_pay_views_default_views() {
   );
 
   /* Display: User's Paid Pages */
-  $handler = $view->new_display('block', 'User\'s Paid Pages', 'user_properties');
+  $handler = $view->new_display('block', 'User\'s paid pages', 'user_properties');
 
   $views[$view->name] = $view;
 

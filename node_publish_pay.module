@@ -26,7 +26,7 @@ function node_publish_pay_menu() {
   );
 
   $items['user/%user/paid_pages'] = array(
-    'title' => 'Paid Pages',
+    'title' => 'Paid pages',
     'page callback' => 'node_publish_pay_get_properties',
     'page arguments' => array(1),
     'access arguments' => array('allow manage subscription'),
@@ -415,7 +415,7 @@ function node_publish_pay_get_properties($user) {
     return;
   }
 
-  drupal_set_title($user->name . '\'s Paid Pages');
+  drupal_set_title($user->name . '\'s paid pages');
 
   $view->set_display('user_properties');
   $view->set_arguments(array($user->uid));

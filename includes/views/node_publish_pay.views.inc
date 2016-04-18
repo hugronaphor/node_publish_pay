@@ -59,7 +59,7 @@ function node_publish_pay_views_data() {
     'field' => array(
       'field' => 'payment_status',
       'group' => t('Content'),
-      'handler' => 'views_handler_field_node',
+      'handler' => 'node_publish_pay_views_handler_field_node',
       'click sortable' => TRUE,
       'link_to_node default' => TRUE,
     ),

@@ -5,3 +5,4 @@ dependencies[] = views
 core = 7.x
 
 files[] = includes/views/node_publish_pay.views.inc
+files[] = includes/views/node_publish_pay_views_handler_field_node.inc
